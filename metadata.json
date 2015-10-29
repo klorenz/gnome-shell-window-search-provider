@@ -1,0 +1,7 @@
+{
+  "uuid": "window-search-provider@quelltexter.org",
+  "name": "Window Search Provider",
+  "description": "Provide active windows as search results in overview",
+  "shell-version": ["3.16"],
+  "url": "https://github.com/klorenz/gnome-shell-window-search-provider"
+}

@@ -18,6 +18,6 @@ If you start your search with a "/", it will interprete all search terms
 Screenshots
 -----------
 
-[Screenshot fuzzy search](https://github.com/klorenz/gnome-shell-window-search-provider/blob/master/window-search-provider-fuzzy.png)
+![Screenshot fuzzy search](https://github.com/klorenz/gnome-shell-window-search-provider/blob/master/window-search-provider-fuzzy.png)
 
-[Screenshot regex search](https://github.com/klorenz/gnome-shell-window-search-provider/blob/master/window-search-provider-regex.png)
+![Screenshot regex search](https://github.com/klorenz/gnome-shell-window-search-provider/blob/master/window-search-provider-regex.png)

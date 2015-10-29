@@ -15,6 +15,8 @@ Current algorithm does not yet order the matches by best score.
 If you start your search with a "/", it will interprete all search terms
 (separated by whitespace) as regular expressions, which have to match all.
 
+This extension was inspired by https://github.com/daniellandau/switcher/
+
 Screenshots
 -----------
 

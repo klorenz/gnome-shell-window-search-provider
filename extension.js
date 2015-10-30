@@ -5,12 +5,12 @@
 // create atom project opener
 // view log: journalctl /usr/bin/gnome-session -f -o cat
 
-const Meta = imports.gi.Meta;
-const St = imports.gi.St;
-const Lang = imports.lang;
-const Main = imports.ui.main;
+const Meta  = imports.gi.Meta;
+const St    = imports.gi.St;
+const Lang  = imports.lang;
+const Main  = imports.ui.main;
 const Shell = imports.gi.Shell;
-const Gio = imports.gi.Gio;
+const Gio   = imports.gi.Gio;
 
 var windowSearchProvider = null;
 
@@ -87,6 +87,7 @@ const WindowSearchProvider = new Lang.Class({
         return id.match(/gnome-session-properties/)
       }
       catch(e) {
+        return nulL
       }
     })[0];
     this.windows = null;
@@ -98,38 +99,33 @@ const WindowSearchProvider = new Lang.Class({
     logDebug("getResultSet");
     var resultIds = [];
     var candidates = this.windows;
+    var _terms = [].concat(terms);
+    var match = null;
+    this.action = "activate";
 
-    if (terms[0][0] == "/") {
-      let regex = terms.map(function (term) { return new RegExp(term.replace(/^\//, ''), 'i'); });
-      logDebug("term: '" + terms.join("' '") + "'")
-      var count = 0;
-      for (var key in candidates) {
-        logDebug("candidate: " + candidates[key].name)
-        let matched = true;
-        for (var j = 0; j < terms.length; j++) {
-          if (!candidates[key].name.match(regex[j])) {
-            matched = false;
-            break;
-          }
-        }
-        if (matched) {
-          resultIds.push(key);
-        }
-        count += 1;
-        logDebug("candidate " + (matched ? "matched" : "not matched"));
+    if (_terms.length > 1 && _terms[0][0] === '!') {
+      if (_terms[0].toLowerCase === "!x" ) {
+        this.action = 'close';
       }
+      _terms = _terms.slice(1)
+    }
+
+    if (_terms[0][0] == "/") {
+      var regex = new RegExp(_terms.join('.*?').substring(1), 'i');
+      match = function(s) { return s.match(regex) }
     }
     else {
-      // go for fuzzymatching
-      logDebug("fuzzymatch");
-      var term = terms.join('');
-      for (var key in candidates) {
-        if (fuzzyMatch(term, candidates[key].name)) {
-          resultIds.push(key);
-        }
+      var term = _terms.join('');
+      match = function(s) { return fuzzyMatch(term, s) }
+    }
+
+    for (var key in candidates) {
+      if (match(candidates[key].name)) {
+        resultIds.push(key);
       }
     }
-    logDebug("found " + resultIds.length + " results out of " + count);
+    this.resultIds = resultIds;
+
     return resultIds;
   },
 
@@ -157,20 +153,39 @@ const WindowSearchProvider = new Lang.Class({
   },
 
   activateResult: function(resultId, terms) {
-    var result = this.windows[resultId];
-    logDebug("activateResult: " + result);
-    Main.activateWindow(result.window);
+    log("action: "+this.action)
+    if (this.action === "activate") {
+      var result = this.windows[resultId]
+      logDebug("activateResult: " + result)
+      Main.activateWindow(result.window)
+    } else if (this.action === "close") {
+      for (var i=0; i<this.resultIds.length; i++) {
+        const win = this.windows[this.resultIds[i]]
+        const actor = win.window.get_compositor_private()
+        try {
+          const meta = actor.get_meta_window()
+          meta.delete(global.get_current_time())
+        }
+        catch(e)
+        {
+          log(e)
+        }
+      }
+      Main.overview.hide();
+    }
   },
 
   launchSearch: function(result) {
-     logDebug("launchSearch: " + result.name);
-    Main.activateWindow(result.window);
+    // logDebug("launchSearch: " + result.name);
+    // Main.activateWindow(result.window);
   },
 
   getInitialResultSet: function(terms, callback, cancellable) {
    logDebug("getInitialResultSet: " + terms.join(" "));
+   var windows = null
    this.windows = windows = {};
    global.display.get_tab_list(Meta.TabList.NORMAL, null).map(function(v,i) { windows['w'+i] = makeResult(v,'w'+i) });
+   //global.get_window_actors().map(function(v,i) { windows['w'+i] = makeResult(v,'w'+i) });
    logDebug("getInitialResultSet: " + this.windows);
    //logDebug("window id", windows[0].get_id());
    callback(this._getResultSet(terms));
@@ -178,8 +193,8 @@ const WindowSearchProvider = new Lang.Class({
 
   filterResults: function(results, maxResults) {
     logDebug("filterResults", results, maxResults);
-    return results.slice(0, maxResults);
-    //return results;
+    //return results.slice(0, maxResults);
+    return results;
   },
 
   getSubsearchResultSet: function(previousResults, terms, callback, cancellable) {

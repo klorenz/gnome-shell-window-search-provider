@@ -17,6 +17,37 @@ If you start your search with a "/", it will interprete all search terms
 
 This extension was inspired by https://github.com/daniellandau/switcher/
 
+
+Features
+--------
+
+- Fuzzy match current open windows and activate selected
+
+- Match current open windows with a regex starting search term with "/"
+  (spaces are substituted with ".*?") and activate selected
+
+- Start a search with !x and whitespace, then either fuzzy match or match
+  regex to close *all* selected windows.
+
+  Example: "!x specsu" to close all windows labelled "Spec Suite".  I
+  tend to leave many atom package test windows open.  So this is a killer
+  feature ;)
+
+
+Installation
+------------
+
+You can install this extension from https://extensions.gnome.org or simply
+clone this repository into your extension folder:
+```
+  $ cd ~/.local/share/gnome-shell/extensions
+  $ git clone https://githum.com/klorenz/gnome-shell-window-search-provider.git window-search-provider@quelltexter.org
+  $ gnome-shell-extension-tool -e "window-search-provider"
+```
+
+You can also download a zip of this repo and install using [Gnome Tweak Tool](https://wiki.gnome.org/Apps/GnomeTweakTool).
+
+
 Screenshots
 -----------
 

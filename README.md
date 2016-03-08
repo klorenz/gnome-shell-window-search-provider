@@ -51,7 +51,7 @@ You can install this extension from https://extensions.gnome.org or simply
 clone this repository into your extension folder:
 ```
   $ cd ~/.local/share/gnome-shell/extensions
-  $ git clone https://githum.com/klorenz/gnome-shell-window-search-provider.git window-search-provider@quelltexter.org
+  $ git clone https://github.com/klorenz/gnome-shell-window-search-provider.git window-search-provider@quelltexter.org
   $ gnome-shell-extension-tool -e "window-search-provider"
 ```
 

@@ -101,13 +101,29 @@ const WindowSearchProvider = new Lang.Class({
     var candidates = this.windows;
     var _terms = [].concat(terms);
     var match = null;
+    var m;
     this.action = "activate";
 
+    // action may be at start
     if (_terms.length > 1 && _terms[0][0] === '!') {
       if (_terms[0].toLowerCase === "!x" ) {
         this.action = 'close';
       }
       _terms = _terms.slice(1)
+    } else if (m = _terms[_terms.length-1].match(/(.*)!x$/)) {
+      // or at end
+      this.action = 'close'
+      if (m[1] !== '') {
+        _terms[_terms.length-1] = m[1]
+      } else {
+        _terms.pop()
+      }
+    } else if (m = _terms[_terms.length-1].match(/(.*)!$/)) {
+      if (m[1] !== '') {
+        _terms[_terms.length-1] = m[1]
+      } else {
+        _terms.pop()
+      }
     }
 
     if (_terms[0][0] == "/") {

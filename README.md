@@ -33,6 +33,16 @@ Features
   tend to leave many atom package test windows open.  So this is a killer
   feature ;)
 
+- End a search with "!x" to close all selected windows.  (using feature
+  above showed me, that I intuitively first selected windows to close,
+  then had to edit the search text)
+
+  Example: "specsu!x" to close all windows labelled "Spec Suite".
+
+- A "!" at end of a search string is ignored, if you have a "!" in your
+  search term (other than describe above), it is part of search term as 
+  expected.
+
 
 Installation
 ------------

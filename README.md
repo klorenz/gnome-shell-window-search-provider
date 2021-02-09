@@ -39,14 +39,19 @@ Features
 
   Example: "specsu!x" to close all windows labelled "Spec Suite".
 
-- A "!" at end of a search string is ignored, if you have a "!" in your
-  search term (other than describe above), it is part of search term as 
-  expected.
+- A "!" or "/" at end of a search string is ignored, if you have a "!" or "/" 
+  in your search term (other than describe above), it is part of search term 
+  as expected.
 
-- A "!" + number like "!2" will select the second matched window from list.
-  E.g. "code!2" will select the second window matching "code".  This makes 
+- A "!" (or "/") + number like "!2" or "/2" at end of your search term will 
+  select the second matched window from list.
+
+  Example: "code/2" will select the second window matching "code".  This makes 
   the search also more unique, such that you can simply hit return for
   activating the window.
+
+- I found "/" at end of windows faster to type than "!", so you can use both
+  chars at end of string for options.
 
 Installation
 ------------

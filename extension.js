@@ -120,8 +120,8 @@ const WindowSearchProvider = new Lang.Class({
       }
       _terms = _terms.slice(1)
 
-    } else if (_terms[_terms.length - 1].match(/(.*)!x$/)) {
-      m = _terms[_terms.length - 1].match(/(.*)!x$/);
+    } else if (_terms[_terms.length - 1].match(/(.*)[!\/]x$/)) {
+      m = _terms[_terms.length - 1].match(/(.*)[!\/]x$/);
       // or at end
       this.action = 'close'
       if (m[1] !== '') {
@@ -129,16 +129,16 @@ const WindowSearchProvider = new Lang.Class({
       } else {
         _terms.pop()
       }
-    } else if (_terms[_terms.length - 1].match(/(.*)!(\d+)$/)) {
-      m = _terms[_terms.length - 1].match(/(.*)!(\d+)$/);
+    } else if (_terms[_terms.length - 1].match(/(.*)\/(\d+)$/)) {
+      m = _terms[_terms.length - 1].match(/(.*)\/(\d+)$/);
       selection = parseInt(m[2])
       if (m[1] !== '') {
         _terms[_terms.length - 1] = m[1]
       } else {
         _terms.pop()
       }
-    } else if (_terms[_terms.length - 1].match(/(.*)!$/)) {
-      m = _terms[_terms.length - 1].match(/(.*)!$/);
+    } else if (_terms[_terms.length - 1].match(/(.*)[!\/]$/)) {
+      m = _terms[_terms.length - 1].match(/(.*)[!\/]$/);
       if (m[1] !== '') {
         _terms[_terms.length - 1] = m[1]
       } else {

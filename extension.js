@@ -198,7 +198,9 @@ const WindowSearchProvider = new Lang.Class({
     return {
       'id': resultId,
       'name': result.appName,
-      'description': "hel<b>lo</b> "+result.windowTitle,
+      // TODO: do highlighting of search term (i.e. for fuzzy matching)
+//      'description': "hel<b>lo</b> "+result.windowTitle,
+      'description': result.windowTitle,
       'createIcon': function (size) {
 	logDebug('createIcon size='+size);
         return app.create_icon_texture(size);

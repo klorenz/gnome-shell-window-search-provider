@@ -5,20 +5,21 @@
 // create atom project opener
 // view log: journalctl /usr/bin/gnome-session -f -o cat
 
-const Meta  = imports.gi.Meta;
-const St    = imports.gi.St;
-const Lang  = imports.lang;
-const Main  = imports.ui.main;
+
+const Meta = imports.gi.Meta;
+const St = imports.gi.St;
+const Lang = imports.lang;
+const Main = imports.ui.main;
 const Shell = imports.gi.Shell;
-const Gio   = imports.gi.Gio;
+const Gio = imports.gi.Gio;
 
 var windowSearchProvider = null;
 
-var debug = false;
+var windowSearchProviderDebug = false;
 
-function logDebug() {
-  if (debug) {
-    log.call(this, arguments)
+function logDebug(a,b,c,d,e) {
+  if (windowSearchProviderDebug) {
+    global.log.apply(this, [ 'WINDOW SEARCH PROVIDER' ].concat([].slice.call(arguments)))
   }
 }
 
@@ -27,10 +28,10 @@ function fuzzyMatch(term, text) {
   var matches = [];
   var _text = text.toLowerCase();
   var _term = term.toLowerCase();
-  logDebug("fuzzyTerm: "+_term);
-  logDebug("fuzzyText: "+_text);
+  logDebug("fuzzyTerm: " + _term);
+  logDebug("fuzzyText: " + _text);
 
-  for (var i=0; i<_term.length; i++) {
+  for (var i = 0; i < _term.length; i++) {
     var c = _term[i];
     while (true) {
       pos += 1;
@@ -43,7 +44,8 @@ function fuzzyMatch(term, text) {
       }
     }
   }
-  logDebug("matches: "+matches.join(" "))
+  logDebug("matches: " + matches.join(" "))
+
   return matches;
 }
 
@@ -80,22 +82,28 @@ const WindowSearchProvider = new Lang.Class({
   Name: 'WindowSearchProvider',
   // appInfo: true,
 
-  _init: function(title, categoryType) {
-    this.appInfo = Gio.AppInfo.get_all().filter(function(appInfo){
+  _init: function (title, categoryType) {
+    logDebug(`title: ${title}, cat: ${categoryType}`)
+
+    this.appInfo = Gio.AppInfo.get_all().filter(function (appInfo) {
       try {
-        let id = appInfo.get_id();
+        let id = appInfo.get_id()
         return id.match(/gnome-session-properties/)
       }
-      catch(e) {
-        return nulL
+      catch (e) {
+        return null
       }
-    })[0];
+    })[0]
+
+    this.appInfo.get_name = function () {
+      return 'Windows';
+    };
     this.windows = null;
 
     logDebug("_init");
   },
 
-  _getResultSet: function(terms) {
+  _getResultSet: function (terms) {
     logDebug("getResultSet");
     var resultIds = [];
     var candidates = this.windows;
@@ -103,24 +111,36 @@ const WindowSearchProvider = new Lang.Class({
     var match = null;
     var m;
     this.action = "activate";
+    var selection = null;
 
     // action may be at start
     if (_terms.length > 1 && _terms[0][0] === '!') {
-      if (_terms[0].toLowerCase === "!x" ) {
+      if (_terms[0].toLowerCase === "!x") {
         this.action = 'close';
       }
       _terms = _terms.slice(1)
-    } else if (m = _terms[_terms.length-1].match(/(.*)!x$/)) {
+
+    } else if (_terms[_terms.length - 1].match(/(.*)!x$/)) {
+      m = _terms[_terms.length - 1].match(/(.*)!x$/);
       // or at end
       this.action = 'close'
       if (m[1] !== '') {
-        _terms[_terms.length-1] = m[1]
+        _terms[_terms.length - 1] = m[1]
       } else {
         _terms.pop()
       }
-    } else if (m = _terms[_terms.length-1].match(/(.*)!$/)) {
+    } else if (_terms[_terms.length - 1].match(/(.*)!(\d+)$/)) {
+      m = _terms[_terms.length - 1].match(/(.*)!(\d+)$/);
+      selection = parseInt(m[2])
       if (m[1] !== '') {
-        _terms[_terms.length-1] = m[1]
+        _terms[_terms.length - 1] = m[1]
+      } else {
+        _terms.pop()
+      }
+    } else if (_terms[_terms.length - 1].match(/(.*)!$/)) {
+      m = _terms[_terms.length - 1].match(/(.*)!$/);
+      if (m[1] !== '') {
+        _terms[_terms.length - 1] = m[1]
       } else {
         _terms.pop()
       }
@@ -128,92 +148,110 @@ const WindowSearchProvider = new Lang.Class({
 
     if (_terms[0][0] == "/") {
       var regex = new RegExp(_terms.join('.*?').substring(1), 'i');
-      match = function(s) { return s.match(regex) }
+      match = function (s) { var m = s.match(regex); return m ? m[0].length : false; }
     }
     else {
       var term = _terms.join('');
-      match = function(s) { return fuzzyMatch(term, s) }
+      match = function (s) { var m = fuzzyMatch(term, s); return m ? m[m.length - 1] - m[0] : false; }
     }
+    var results = [];
 
     for (var key in candidates) {
-      if (match(candidates[key].name)) {
-        resultIds.push(key);
+      logDebug("match candidate: "+candidates[key].name);
+      var m = match(candidates[key].name);
+
+      if (m !== false) {
+        results.push({ weight: m, id: key });
       }
     }
-    this.resultIds = resultIds;
+    results.sort(function (a, b) { if (a.weight < b.weight) return -1; if (a.weight > b.weight) return 1; return 0 });
 
-    return resultIds;
+    this.resultIds = results.map(function (item) { return item.id });
+
+
+    // let the user select number of match
+    if (selection !== null) {
+      if (selection > results.length) {
+        return [];
+      }
+      return [ results[selection-1].id ]
+    }
+
+    logDebug("resultSet: ", this.resultIds);
+
+    return this.resultIds;
   },
 
-  getResultMetas: function(resultIds, callback) {
-    logDebug("result metas for name: "+resultIds.join(" "));
+  getResultMetas: function (resultIds, callback) {
+    logDebug("result metas for name: " + resultIds.join(" "));
     let _this = this;
-    let metas = resultIds.map(function(id) { return _this.getResultMeta(id); });
+    let metas = resultIds.map(function (id) { return _this.getResultMeta(id); });
     logDebug("metas: " + metas.join(" "));
     callback(metas);
   },
 
-  getResultMeta: function(resultId) {
+  getResultMeta: function (resultId) {
     var result = this.windows[resultId];
     const app = Shell.WindowTracker.get_default().get_window_app(result.window);
-    logDebug("result meta for name: "+result.name);
-    logDebug("result meta: ", resultId);
+    logDebug("result meta for name: " + result.name);
+    logDebug("result meta: " + resultId);
     return {
       'id': resultId,
       'name': result.appName,
-      'description': result.windowTitle,
-      'createIcon': function(size) {
+      'description': "hel<b>lo</b> "+result.windowTitle,
+      'createIcon': function (size) {
+	logDebug('createIcon size='+size);
         return app.create_icon_texture(size);
       }
     }
   },
 
-  activateResult: function(resultId, terms) {
-    log("action: "+this.action)
+  activateResult: function (resultId, terms) {
+    logDebug("action: " + this.action)
     if (this.action === "activate") {
       var result = this.windows[resultId]
       logDebug("activateResult: " + result)
       Main.activateWindow(result.window)
     } else if (this.action === "close") {
-      for (var i=0; i<this.resultIds.length; i++) {
+      for (var i = 0; i < this.resultIds.length; i++) {
         const win = this.windows[this.resultIds[i]]
         const actor = win.window.get_compositor_private()
         try {
           const meta = actor.get_meta_window()
           meta.delete(global.get_current_time())
         }
-        catch(e)
-        {
-          log(e)
+        catch (e) {
+          logDebug("my error")
+          logDebug(e)
         }
       }
       Main.overview.hide();
     }
   },
 
-  launchSearch: function(result) {
-    // logDebug("launchSearch: " + result.name);
+  launchSearch: function (result) {
+    logDebug("launchSearch: " + result);
     // Main.activateWindow(result.window);
   },
 
-  getInitialResultSet: function(terms, callback, cancellable) {
-   logDebug("getInitialResultSet: " + terms.join(" "));
-   var windows = null
-   this.windows = windows = {};
-   global.display.get_tab_list(Meta.TabList.NORMAL, null).map(function(v,i) { windows['w'+i] = makeResult(v,'w'+i) });
-   //global.get_window_actors().map(function(v,i) { windows['w'+i] = makeResult(v,'w'+i) });
-   logDebug("getInitialResultSet: " + this.windows);
-   //logDebug("window id", windows[0].get_id());
-   callback(this._getResultSet(terms));
- },
+  getInitialResultSet: function (terms, callback, cancellable) {
+    logDebug("getInitialResultSet: " + terms.join(" "));
+    var windows = null
+    this.windows = windows = {};
+    global.display.get_tab_list(Meta.TabList.NORMAL, null).map(function (v, i) { windows['w' + i] = makeResult(v, 'w' + i) });
+    //global.get_window_actors().map(function(v,i) { windows['w'+i] = makeResult(v,'w'+i) });
+    logDebug("getInitialResultSet: " + this.windows);
+    //logDebug("window id", windows[0].get_id());
+    callback(this._getResultSet(terms));
+  },
 
-  filterResults: function(results, maxResults) {
+  filterResults: function (results, maxResults) {
     logDebug("filterResults", results, maxResults);
     //return results.slice(0, maxResults);
     return results;
   },
 
-  getSubsearchResultSet: function(previousResults, terms, callback, cancellable) {
+  getSubsearchResultSet: function (previousResults, terms, callback, cancellable) {
     logDebug("getSubSearchResultSet: " + terms.join(" "));
     this.getInitialResultSet(terms, callback, cancellable);
   },
@@ -234,11 +272,14 @@ function init() {
 }
 
 function enable() {
-  logDebug("enable window search provider");
-  if (!windowSearchProvider) {
+  global.log("*** enable window search provider");
+  global.log("windowSearchProvider", windowSearchProvider)
+  if (windowSearchProvider == null) {
     logDebug("enable window search provider");
     windowSearchProvider = new WindowSearchProvider();
+
     //Main.overview.addSearchProvider(windowSearchProvider);
+    //log("main.overview", moan)
     Main.overview.viewSelector._searchResults._registerProvider(
       windowSearchProvider
     );
@@ -247,7 +288,7 @@ function enable() {
 
 function disable() {
   if (windowSearchProvider) {
-    logDebug("disenable window search provider");
+    global.log("*** disable window search provider");
     // Main.overview.removeSearchProvider(windowSearchProvider)
     Main.overview.viewSelector._searchResults._unregisterProvider(
       windowSearchProvider
@@ -255,3 +296,4 @@ function disable() {
     windowSearchProvider = null;
   }
 }
+

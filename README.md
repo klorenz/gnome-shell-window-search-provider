@@ -43,6 +43,10 @@ Features
   search term (other than describe above), it is part of search term as 
   expected.
 
+- A "!" + number like "!2" will select the second matched window from list.
+  E.g. "code!2" will select the second window matching "code".  This makes 
+  the search also more unique, such that you can simply hit return for
+  activating the window.
 
 Installation
 ------------

@@ -129,8 +129,8 @@ const WindowSearchProvider = new Lang.Class({
       } else {
         _terms.pop()
       }
-    } else if (_terms[_terms.length - 1].match(/(.*)\/(\d+)$/)) {
-      m = _terms[_terms.length - 1].match(/(.*)\/(\d+)$/);
+    } else if (_terms[_terms.length - 1].match(/(.*)[!\/](\d+)$/)) {
+      m = _terms[_terms.length - 1].match(/(.*)[!\/](\d+)$/);
       selection = parseInt(m[2])
       if (m[1] !== '') {
         _terms[_terms.length - 1] = m[1]
@@ -148,7 +148,8 @@ const WindowSearchProvider = new Lang.Class({
 
     if (_terms[0][0] == "/") {
       var regex = new RegExp(_terms.join('.*?').substring(1), 'i');
-      match = function (s) { var m = s.match(regex); return m ? m[0].length : false; }
+      match = function (s) { 
+        var m = s.match(regex); return m ? m[0].length+1 : false; }
     }
     else {
       var term = _terms.join('');
@@ -167,7 +168,6 @@ const WindowSearchProvider = new Lang.Class({
     results.sort(function (a, b) { if (a.weight < b.weight) return -1; if (a.weight > b.weight) return 1; return 0 });
 
     this.resultIds = results.map(function (item) { return item.id });
-
 
     // let the user select number of match
     if (selection !== null) {

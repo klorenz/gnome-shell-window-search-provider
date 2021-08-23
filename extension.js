@@ -199,13 +199,13 @@ const WindowSearchProvider = new Lang.Class({
     logDebug("result meta: " + resultId);
     return {
       'id': resultId,
-      'name': result.appName,
+      'name': result.windowTitle,
       // TODO: do highlighting of search term (i.e. for fuzzy matching)
 //      'description': "hel<b>lo</b> "+result.windowTitle,
-      'description': result.windowTitle,
+      'description': result.appName,
       'createIcon': function (size) {
 	logDebug('createIcon size='+size);
-        return app.create_icon_texture(size);
+        return app.create_icon_texture(size * 1.5);
       }
     }
   },

@@ -273,6 +273,14 @@ const WindowSearchProvider = new Lang.Class({
 function init() {
 }
 
+function getOverviewSearchResult() {
+  if (Main.overview.viewSelector !== undefined) {
+    return Main.overview.viewSelector._searchResults;
+  } else {
+    return Main.overview._overview.controls._searchController._searchResults;
+  }
+}
+
 function enable() {
   global.log("*** enable window search provider");
   global.log("windowSearchProvider", windowSearchProvider)
@@ -282,7 +290,7 @@ function enable() {
 
     //Main.overview.addSearchProvider(windowSearchProvider);
     //log("main.overview", moan)
-    Main.overview.viewSelector._searchResults._registerProvider(
+    getOverviewSearchResult()._registerProvider(
       windowSearchProvider
     );
   }
@@ -292,7 +300,7 @@ function disable() {
   if (windowSearchProvider) {
     global.log("*** disable window search provider");
     // Main.overview.removeSearchProvider(windowSearchProvider)
-    Main.overview.viewSelector._searchResults._unregisterProvider(
+    getOverviewSearchResult()._unregisterProvider(
       windowSearchProvider
     );
     windowSearchProvider = null;

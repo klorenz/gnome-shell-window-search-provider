@@ -84,7 +84,8 @@ const WindowSearchProvider = new Lang.Class({
 
   _init: function (title, categoryType) {
     logDebug(`title: ${title}, cat: ${categoryType}`)
-
+/* There is no more gnome-session-properties there, disable this code */
+/*
     this.appInfo = Gio.AppInfo.get_all().filter(function (appInfo) {
       try {
         let id = appInfo.get_id()
@@ -98,6 +99,7 @@ const WindowSearchProvider = new Lang.Class({
     this.appInfo.get_name = function () {
       return 'Windows';
     };
+*/
     this.windows = null;
 
     logDebug("_init");
@@ -197,13 +199,13 @@ const WindowSearchProvider = new Lang.Class({
     logDebug("result meta: " + resultId);
     return {
       'id': resultId,
-      'name': result.appName,
+      'name': result.windowTitle,
       // TODO: do highlighting of search term (i.e. for fuzzy matching)
 //      'description': "hel<b>lo</b> "+result.windowTitle,
-      'description': result.windowTitle,
+      'description': result.appName,
       'createIcon': function (size) {
 	logDebug('createIcon size='+size);
-        return app.create_icon_texture(size);
+        return app.create_icon_texture(size * 1.5);
       }
     }
   },
@@ -273,6 +275,14 @@ const WindowSearchProvider = new Lang.Class({
 function init() {
 }
 
+function getOverviewSearchResult() {
+  if (Main.overview.viewSelector !== undefined) {
+    return Main.overview.viewSelector._searchResults;
+  } else {
+    return Main.overview._overview.controls._searchController._searchResults;
+  }
+}
+
 function enable() {
   global.log("*** enable window search provider");
   global.log("windowSearchProvider", windowSearchProvider)
@@ -282,7 +292,7 @@ function enable() {
 
     //Main.overview.addSearchProvider(windowSearchProvider);
     //log("main.overview", moan)
-    Main.overview.viewSelector._searchResults._registerProvider(
+    getOverviewSearchResult()._registerProvider(
       windowSearchProvider
     );
   }
@@ -292,7 +302,7 @@ function disable() {
   if (windowSearchProvider) {
     global.log("*** disable window search provider");
     // Main.overview.removeSearchProvider(windowSearchProvider)
-    Main.overview.viewSelector._searchResults._unregisterProvider(
+    getOverviewSearchResult()._unregisterProvider(
       windowSearchProvider
     );
     windowSearchProvider = null;

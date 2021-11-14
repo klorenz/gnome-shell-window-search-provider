@@ -84,22 +84,25 @@ const WindowSearchProvider = new Lang.Class({
 
   _init: function (title, categoryType) {
     logDebug(`title: ${title}, cat: ${categoryType}`)
-/* There is no more gnome-session-properties there, disable this code */
-/*
-    this.appInfo = Gio.AppInfo.get_all().filter(function (appInfo) {
-      try {
-        let id = appInfo.get_id()
-        return id.match(/gnome-session-properties/)
-      }
-      catch (e) {
-        return null
-      }
-    })[0]
 
-    this.appInfo.get_name = function () {
-      return 'Windows';
-    };
-*/
+    const Config = imports.misc.config;
+    if (Config.PACKAGE_VERSION.startsWith("3")) {
+
+      this.appInfo = Gio.AppInfo.get_all().filter(function (appInfo) {
+        try {
+          let id = appInfo.get_id()
+          return id.match(/gnome-session-properties/)
+        }
+        catch (e) {
+          return null
+        }
+      })[0]
+
+      this.appInfo.get_name = function () {
+        return 'Windows';
+      };
+    }
+
     this.windows = null;
 
     logDebug("_init");

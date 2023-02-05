@@ -1,0 +1,5 @@
+{
+  "searchPrefix": ["kw", "p"],
+  "useAppInfo": true,
+  "debug": false
+}

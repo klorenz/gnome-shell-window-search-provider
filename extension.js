@@ -2,7 +2,9 @@
 // https://extensions.gnome.org/extension/783/tracker-search-provider/
 // https://github.com/hamiller/tracker-search-provider
 // https://git.gnome.org/browse/gnome-weather/tree/src/service/searchProvider.js
-// create atom project opener
+// https://gjs.guide/extensions/
+// https://gjs-docs.gnome.org/gio20~2.0/
+// gnome shell extension ts getInitialResultSet 2023
 // view log: journalctl /usr/bin/gnome-session -f -o cat
 
 
@@ -11,16 +13,41 @@ const St = imports.gi.St;
 const Lang = imports.lang;
 const Main = imports.ui.main;
 const Shell = imports.gi.Shell;
-const Gio = imports.gi.Gio;
+const ExtensionUtils = imports.misc.extensionUtils;
+
+const Me = ExtensionUtils.getCurrentExtension();
 
 var windowSearchProvider = null;
 
 var windowSearchProviderDebug = false;
 
+const {Gio, GLib} = imports.gi;
+
+
 function logDebug(a,b,c,d,e) {
   if (windowSearchProviderDebug) {
-    global.log.apply(this, [ 'WINDOW SEARCH PROVIDER' ].concat([].slice.call(arguments)))
+    global.log.apply(this, [ 'WINDOW SEARCH PROVIDER', 'DEBUG' ].concat([].slice.call(arguments)))
   }
+}
+
+function logError(a,b,c,d,e) {
+  global.log.apply(this, [ 'WINDOW SEARCH PROVIDER', 'ERROR' ].concat([].slice.call(arguments)))
+}
+
+function logWarning(a,b,c,d,e) {
+  global.log.apply(this, [ 'WINDOW SEARCH PROVIDER', 'WARNING' ].concat([].slice.call(arguments)))
+}
+
+function logInfo(a,b,c,d,e) {
+  global.log.apply(this, [ 'WINDOW SEARCH PROVIDER', 'INFO' ].concat([].slice.call(arguments)))
+}
+
+
+const myPrefs = {
+  useAppInfo: true,
+
+  // optional search prefix to make search unique (applicantion matcher is quite aggressive)
+  searchPrefix: "w"
 }
 
 function fuzzyMatch(term, text) {
@@ -68,7 +95,8 @@ function makeResult(window, i) {
     }
   }
   catch (e) {
-    print(e);
+    logWarning("Cannot create result (" + i + ") for window " + window + ": " + e);
+
     return {
       'id': i,
       'window': window,
@@ -82,12 +110,45 @@ const WindowSearchProvider = new Lang.Class({
   Name: 'WindowSearchProvider',
   // appInfo: true,
 
+  canLaunchSearch: true,
+  isRemoteProvider: false,
+
   _init: function (title, categoryType) {
     logDebug(`title: ${title}, cat: ${categoryType}`)
+    let prefs_file = "unkown"
 
-    const Config = imports.misc.config;
-    if (Config.PACKAGE_VERSION.startsWith("3")) {
+    try {
 
+      const default_prefs_file = Me.dir.get_path() + "/prefs.json"
+      const config_prefs_file = GLib.get_home_dir() + "/.config/gnome-shell-window-search-provider/prefs.json"
+
+      const cpf = Gio.File.new_for_path(config_prefs_file)
+
+      if (cpf.query_exists(null)) {
+        prefs_file = config_prefs_file
+      } else {
+        prefs_file = default_prefs_file
+      }
+
+      logInfo("Read Prefs "+prefs_file)
+      let byte_array = GLib.file_get_contents(prefs_file)[1]
+      let decoder = new TextDecoder("utf-8")
+
+      logDebug("fileContents "+byte_array)
+      this.prefs = JSON.parse(decoder.decode(byte_array))
+
+    } catch(e) {
+      logError("Error reading prefs file "+prefs_file+": "+e)
+      this.prefs = myPrefs
+    }
+
+    if (this.prefs.debug) {
+      windowSearchProviderDebug = true
+    } else {
+      windowSearchProviderDebug = false
+    }
+
+    if (this.prefs.useAppInfo) {
       this.appInfo = Gio.AppInfo.get_all().filter(function (appInfo) {
         try {
           let id = appInfo.get_id()
@@ -103,6 +164,7 @@ const WindowSearchProvider = new Lang.Class({
       };
     }
 
+
     this.windows = null;
 
     logDebug("_init");
@@ -117,6 +179,27 @@ const WindowSearchProvider = new Lang.Class({
     var m;
     this.action = "activate";
     var selection = null;
+
+    logDebug("Getting results for terms "+terms)
+
+    try {
+      var searchPrefixes = this.prefs.searchPrefix;
+
+      if (!(searchPrefixes instanceof Array)) {
+        searchPrefixes = [ searchPrefixes ]
+      }
+
+      for (var i = 0; i < searchPrefixes.length; i++) {
+        let searchPrefix = searchPrefixes[i]
+
+        if (_terms[0].length >= searchPrefix.length && _terms[0].substring(0, searchPrefix.length) == searchPrefix) {
+          logDebug("removing Prefix "+searchPrefix)
+          _terms[0] = _terms[0].substring(searchPrefix.length)
+        }
+      }
+    } catch(e) {
+      logWarning("Cannot find/remove search prefix: "+e)
+    }
 
     // action may be at start
     if (_terms.length > 1 && _terms[0][0] === '!') {
@@ -190,12 +273,21 @@ const WindowSearchProvider = new Lang.Class({
   getResultMetas: function (resultIds, callback) {
     logDebug("result metas for name: " + resultIds.join(" "));
     let _this = this;
-    let metas = resultIds.map(function (id) { return _this.getResultMeta(id); });
+    let metas = resultIds.map(function (id) { return _this._getResultMeta(id); });
     logDebug("metas: " + metas.join(" "));
-    callback(metas);
+    logDebug("callback: " + callback)
+
+    if (typeof callback === "function") {
+      logDebug("metas called with callback")
+      callback(metas);
+    } else {
+      logDebug("metas NOT called with callback: " + callback)
+      return metas;
+    }
   },
 
-  getResultMeta: function (resultId) {
+  _getResultMeta: function (resultId) {
+    logDebug("getResultMeta: " + resultId);
     var result = this.windows[resultId];
     const app = Shell.WindowTracker.get_default().get_window_app(result.window);
     logDebug("result meta for name: " + result.name);
@@ -207,8 +299,8 @@ const WindowSearchProvider = new Lang.Class({
 //      'description': "hel<b>lo</b> "+result.windowTitle,
       'description': result.appName,
       'createIcon': function (size) {
-	logDebug('createIcon size='+size);
-        return app.create_icon_texture(size * 1.5);
+        logDebug('createIcon size='+size);
+        return app.create_icon_texture(size);
       }
     }
   },
@@ -242,14 +334,24 @@ const WindowSearchProvider = new Lang.Class({
   },
 
   getInitialResultSet: function (terms, callback, cancellable) {
-    logDebug("getInitialResultSet: " + terms.join(" "));
+    logDebug("getInitialResultSet: " + terms.join(" ") + " callback: " + callback + " cancellable: " + cancellable);
     var windows = null
     this.windows = windows = {};
     global.display.get_tab_list(Meta.TabList.NORMAL, null).map(function (v, i) { windows['w' + i] = makeResult(v, 'w' + i) });
     //global.get_window_actors().map(function(v,i) { windows['w'+i] = makeResult(v,'w'+i) });
     logDebug("getInitialResultSet: " + this.windows);
     //logDebug("window id", windows[0].get_id());
-    callback(this._getResultSet(terms));
+    var resultSet = this._getResultSet(terms);
+    logDebug("getInitialResultSet resultSet: " + resultSet);
+
+    // in the past this was a function, since Gnome 43 it is a cancellable
+    if (typeof callback === "function") {
+      logDebug("callback " + callback);
+      callback(resultSet);
+    } else {
+      logDebug("return resultset")
+      return resultSet || []
+    }
   },
 
   filterResults: function (results, maxResults) {
@@ -289,6 +391,7 @@ function getOverviewSearchResult() {
 function enable() {
   global.log("*** enable window search provider");
   global.log("windowSearchProvider", windowSearchProvider)
+
   if (windowSearchProvider == null) {
     logDebug("enable window search provider");
     windowSearchProvider = new WindowSearchProvider();

@@ -53,6 +53,38 @@ Features
 - I found "/" at end of windows faster to type than "!", so you can use both
   chars at end of string for options.
 
+Preferences
+-----------
+
+Preferences file is read, whenever you enable the extension.
+
+There is some rudimentary preference support now.  For simplicity, this reads
+prefs from a JSON file `prefs.json` in following order.  The first existing is
+taken:
+
+- `~/.config/gnome-shell-window-search-provider/prefs.json`
+- `<EXTENSION_DIR>/prefs.json`
+
+What you can configure:
+
+```json
+{
+  "searchPrefix": ["kw", "p"],
+  "useAppInfo": true,
+  "debug": false
+}
+```
+
+- `searchPrefix` is either a string or a list of strings, specifying optional
+  prefixes to boost your window search over application results.  The prefix
+  will not be considered in searches.
+
+- `useAppInfo` - (this did not work in Gnome 40) if off, results displayed like
+  application search results, if on, results are displayed like other search results
+  (with more info)
+
+- `debug` - Display very verbose logging in `journalctl /usr/bin/gnome-shell`
+
 Installation
 ------------
 

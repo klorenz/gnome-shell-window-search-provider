@@ -1,3 +1,6 @@
+**NOTE** - I stopped maintaining this project.  I do not have the time to do the fixes from gnome version to gnome version.  Last time the changes got so big, that I did not manage to do it.  I am using now @G-dH 's [windows-search-provider](https://github.com/G-dH/windows-search-provider), which is amazing!
+
+
 Window Search Provider
 ======================
 
